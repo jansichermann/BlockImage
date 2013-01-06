@@ -6,11 +6,14 @@
 //  Copyright (c) 2012 in4mation GmbH. All rights reserved.
 //
 
+#define CACHE 0
+
 #import "BlockImageView.h"
 #import "DataConnection.h"
-#import "GlobalCache.h"
 
-#define CACHEDIMAGESONLY 0
+#if CACHE
+#import "GlobalCache.h"
+#endif
 
 @interface BlockImageView ()
 @property (nonatomic) DataConnection *imageConnection;
@@ -46,7 +49,10 @@
 }
 
 - (void)loadImageFromUrlString:(NSString *)urlString {
-    id cachedResult = [[GlobalCache sharedCache] imageForPath:urlString];
+    id cachedResult = nil;
+#if CACHE
+    cachedResult = [[GlobalCache sharedCache] imageForPath:urlString];
+#endif 
     if (cachedResult != nil) {
         [self setImage:cachedResult fade:NO];
         return;
@@ -59,8 +65,10 @@
     __weak BlockImageView *weak_self = self;
     self.imageConnection.completionBlock = ^(DataConnection *c){
         [weak_self setImage:c.dataObject fade:YES];
+#if CACHE
         [[GlobalCache sharedCache] setData:c.connectionData forPath:c.urlString];
         [[GlobalCache sharedCache] setImage:c.dataObject forPath:c.urlString];
+#endif
     };
     [self.imageConnection start];
 }

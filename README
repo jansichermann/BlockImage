@@ -1,3 +1,5 @@
-block image relies on DataConnection: https://github.com/jansichermann/DataConnection
+block image relies on:
+* DataConnection: https://github.com/jansichermann/DataConnection
+* GlobalCache: https://github.com/jansichermann/GlobalCache
 
 blockImage takes an urlString, loads it, and cross-fades the image smoothly
