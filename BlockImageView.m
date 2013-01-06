@@ -6,7 +6,7 @@
 //  Copyright (c) 2012 in4mation GmbH. All rights reserved.
 //
 
-#define CACHE 0
+#define CACHE 1
 
 #import "BlockImageView.h"
 #import "DataConnection.h"
@@ -51,7 +51,7 @@
 - (void)loadImageFromUrlString:(NSString *)urlString {
     id cachedResult = nil;
 #if CACHE
-    cachedResult = [[GlobalCache sharedCache] imageForPath:urlString];
+    cachedResult = [[GlobalCache shared] imageForPath:urlString];
 #endif 
     if (cachedResult != nil) {
         [self setImage:cachedResult fade:NO];
@@ -66,8 +66,8 @@
     self.imageConnection.completionBlock = ^(DataConnection *c){
         [weak_self setImage:c.dataObject fade:YES];
 #if CACHE
-        [[GlobalCache sharedCache] setData:c.connectionData forPath:c.urlString];
-        [[GlobalCache sharedCache] setImage:c.dataObject forPath:c.urlString];
+        [[GlobalCache shared] setData:c.connectionData forPath:c.urlString];
+        [[GlobalCache shared] setImage:c.dataObject forPath:c.urlString];
 #endif
     };
     [self.imageConnection start];
