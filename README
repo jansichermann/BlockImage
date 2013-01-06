@@ -1,0 +1,3 @@
+block image relies on DataConnection: https://github.com/jansichermann/DataConnection
+
+blockImage takes an urlString, loads it, and cross-fades the image smoothly
