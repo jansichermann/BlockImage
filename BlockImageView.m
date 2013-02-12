@@ -6,7 +6,7 @@
 //  Copyright (c) 2012 in4mation GmbH. All rights reserved.
 //
 
-#define CACHE 1
+#define CACHE 0
 
 #import "BlockImageView.h"
 #import "DataConnection.h"
@@ -18,19 +18,30 @@
 @interface BlockImageView ()
 @property (nonatomic) DataConnection *imageConnection;
 @property (nonatomic) UIImageView *fadeImageView;
+@property (nonatomic) BOOL isLoading;
+@property (nonatomic) NSString *currentlyDisplayedImageUrl;
+@property (nonatomic) UIActivityIndicatorView *loadingIndicator;
 @end
 
 @implementation BlockImageView
 
-- (id)initWithFrame:(CGRect)frame {
-    self = [super initWithFrame:frame];
-    if (self) {
-        self.fadeImageView = [[UIImageView alloc] initWithFrame:self.bounds];
+- (void)loadImage {
+    NSAssert(self.imageUrlString.length > 0, @"expected imageUrlString to contain imageUrl");
+    if (!self.isLoading && ![self.imageUrlString isEqualToString:self.currentlyDisplayedImageUrl]) {
+        [self loadImageFromUrlString:self.imageUrlString];
     }
-    return self;
+    self.isLoading = YES;
 }
 
 - (void)setImage:(UIImage *)image fade:(BOOL)fade {
+    self.currentlyDisplayedImageUrl = nil;
+    
+    if (self.fadeImageView == nil) {
+        self.fadeImageView = [[UIImageView alloc] initWithFrame:self.bounds];
+    }
+
+    self.imageConnection = nil;
+    self.fadeImageView.contentMode = self.contentMode;
     if (!fade) {
         self.image = image;
     }
@@ -49,6 +60,11 @@
 }
 
 - (void)loadImageFromUrlString:(NSString *)urlString {
+    self.loadingIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+    [self addSubview:self.loadingIndicator];
+    [self.loadingIndicator startAnimating];
+    self.loadingIndicator.center = CGPointMake(self.bounds.size.width / 2, self.bounds.size.height / 2) ;
+    
     id cachedResult = nil;
 #if CACHE
     cachedResult = [[GlobalCache shared] imageForPath:urlString];
@@ -64,11 +80,17 @@
     };
     __weak BlockImageView *weak_self = self;
     self.imageConnection.completionBlock = ^(DataConnection *c){
-        [weak_self setImage:c.dataObject fade:YES];
+        weak_self.isLoading = NO;
+        [weak_self.loadingIndicator removeFromSuperview];
+        weak_self.loadingIndicator = nil;
+        if (c.didSucceed) {
+            [weak_self setImage:c.dataObject fade:YES];
+            weak_self.currentlyDisplayedImageUrl = c.urlString;
 #if CACHE
-        [[GlobalCache shared] setData:c.connectionData forPath:c.urlString];
-        [[GlobalCache shared] setImage:c.dataObject forPath:c.urlString];
+            [[GlobalCache shared] setData:c.connectionData forPath:c.urlString];
+            [[GlobalCache shared] setImage:c.dataObject forPath:c.urlString];
 #endif
+        }
     };
     [self.imageConnection start];
 }

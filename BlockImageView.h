@@ -10,6 +10,11 @@
 
 @interface BlockImageView : UIImageView;
 
+// to be used for lazy loading
+@property (nonatomic) NSString *imageUrlString;
+
 - (void)loadImageFromUrlString:(NSString *)urlString;
 - (void)prepareForReuse;
+- (void)loadImage;
+- (void)setImage:(UIImage *)image fade:(BOOL)fade;
 @end
