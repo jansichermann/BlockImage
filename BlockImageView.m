@@ -1,12 +1,4 @@
-//
-//  BlockImageView.m
-//  nearbyFriends
-//
-//  Created by jan on 11/20/12.
-//  Copyright (c) 2012 in4mation GmbH. All rights reserved.
-//
-
-#define CACHE 0
+#define CACHE 1
 
 #import "BlockImageView.h"
 #import "DataConnection.h"
@@ -15,26 +7,36 @@
 #import "GlobalCache.h"
 #endif
 
+
+
 @interface BlockImageView ()
+
 @property (nonatomic) DataConnection *imageConnection;
 @property (nonatomic) UIImageView *fadeImageView;
-@property (nonatomic) BOOL isLoading;
-@property (nonatomic) NSString *currentlyDisplayedImageUrl;
 @property (nonatomic) UIActivityIndicatorView *loadingIndicator;
+
 @end
+
+
 
 @implementation BlockImageView
 
 - (void)loadImage {
-    NSAssert(self.imageUrlString.length > 0, @"expected imageUrlString to contain imageUrl");
-    if (!self.isLoading && ![self.imageUrlString isEqualToString:self.currentlyDisplayedImageUrl]) {
-        [self loadImageFromUrlString:self.imageUrlString];
+    NSAssert(self.imageUrl.length > 0, @"Expected imageUrlString to contain imageUrl");
+    if (!self.imageConnection ||
+        !self.imageConnection.inProgress) {
+        [self loadImageFromUrlString:self.imageUrl];
     }
-    self.isLoading = YES;
+}
+
+- (void)unloadImage {
+    [self.imageConnection cancelAndClear];
+    [self clearLoadingUI];
+    self.image = self.placeholderImage ? self.placeholderImage : nil;
 }
 
 - (void)setImage:(UIImage *)image fade:(BOOL)fade {
-    self.currentlyDisplayedImageUrl = nil;
+    [self clearLoadingUI];
     
     if (self.fadeImageView == nil) {
         self.fadeImageView = [[UIImageView alloc] initWithFrame:self.bounds];
@@ -69,7 +71,7 @@
 #if CACHE
     cachedResult = [[GlobalCache shared] imageForPath:urlString];
 #endif 
-    if (cachedResult != nil) {
+    if (cachedResult) {
         [self setImage:cachedResult fade:NO];
         return;
     }
@@ -78,28 +80,40 @@
     self.imageConnection.dataBlock = ^UIImage *(NSData *d) {
         return [UIImage imageWithData:d];
     };
+    
     __weak BlockImageView *weak_self = self;
     self.imageConnection.completionBlock = ^(DataConnection *c){
-        weak_self.isLoading = NO;
-        [weak_self.loadingIndicator removeFromSuperview];
-        weak_self.loadingIndicator = nil;
-        if (c.didSucceed) {
-            [weak_self setImage:c.dataObject fade:YES];
-            weak_self.currentlyDisplayedImageUrl = c.urlString;
-#if CACHE
-            [[GlobalCache shared] setData:c.connectionData forPath:c.urlString];
-            [[GlobalCache shared] setImage:c.dataObject forPath:c.urlString];
-#endif
-        }
+        [weak_self imageConnectionDidFinish:c];
     };
     [self.imageConnection start];
 }
 
+- (void)imageConnectionDidFinish:(DataConnection *)c {
+    if (self.imageConnection == c) {
+        [self clearLoadingUI];
+    
+        if (c.didSucceed) {
+            [self setImage:c.dataObject fade:YES];
+        }
+    }
+#if CACHE
+    if (c.didSucceed) {
+        [[GlobalCache shared] setData:c.connectionData forPath:c.urlString];
+        [[GlobalCache shared] setImage:c.dataObject forPath:c.urlString];
+    }
+#endif
+}
+
+- (void)clearLoadingUI {
+    self.imageConnection = nil;
+    [self.loadingIndicator removeFromSuperview];
+    self.loadingIndicator = nil;
+}
+
 - (void)prepareForReuse {
-    self.image = nil;
+    [self unloadImage];
     self.fadeImageView.image = nil;
     [self.fadeImageView removeFromSuperview];
-    [self.imageConnection cancelAndClear];
 }
 
 
