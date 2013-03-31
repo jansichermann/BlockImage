@@ -28,6 +28,8 @@
  */
 @property (nonatomic) UIImage *placeholderImage;
 
+@property (nonatomic) BOOL matchSize;
+
 /**
  Call this to load an image from the imageUrl property.
  */
@@ -52,7 +54,15 @@
 /**
  @param image The image to which the view should be set
  @param fade Whether the image should be cross faded, or simply appear
+ This calls setImage:fade:matchSize: passing matchSize.
  */
 - (void)setImage:(UIImage *)image fade:(BOOL)fade;
 
+/**
+ @param image The image to which the view should be set
+ @param fade Whether the image should be cross faded, or simply appear
+ @param matchSize If set to yes, the View will resize the image to match its size.
+ Be aware that passing matchSize resizes the image on the main thread, potentially blocking it if it is a long running operation.
+ */
+- (void)setImage:(UIImage *)image fade:(BOOL)fade matchSize:(BOOL)matchSize;
 @end

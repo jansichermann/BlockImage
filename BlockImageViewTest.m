@@ -9,14 +9,11 @@
 @property (nonatomic) UIActivityIndicatorView *loadingIndicator;
 
 - (void)clearLoadingUI;
+@property (nonatomic) UIImageView *fadeImageView;
 
 @end
 
 
-
-/**
- Created by Jan on 3/18/13. Copyright (c) 2013 Urban Compass. All rights reserved.
- */
 
 @implementation BlockImageViewTest
 
@@ -37,6 +34,17 @@
     UIImage *i = [[UIImage alloc] init];
     [bi setImage:i fade:NO];
     STAssertEquals(bi.image, i, @"Expected images to match");
+    
+    UIImage *i2 = [[UIImage alloc] init];
+    [bi setImage:i2 fade:YES];
+    STAssertEquals(bi.fadeImageView.image, i2, @"Expected fadeView to have image");
+
+    STAssertFalse(bi.image == i2, @"Expected images to not yet match");
+    
+    NSRunLoop *rl = [NSRunLoop currentRunLoop];
+    while (bi.fadeImageView.image && [rl runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]]);
+
+    STAssertEquals(bi.image, i2, @"Expected images to match");
 }
 
 - (void)testLoadingIndicator {
@@ -47,6 +55,14 @@
 
     [bi clearLoadingUI];
     STAssertTrue(bi.loadingIndicator == nil, @"Expected no loadingIndicator");
+}
+
+- (void)testUnloadingImage {
+    BlockImageView *biv = [[BlockImageView alloc] init];
+    UIImage *image = [[UIImage alloc] init];
+    biv.placeholderImage = image;
+    [biv unloadImage];
+    STAssertEquals(biv.image, image, @"Expected images to match");
 }
 
 @end

@@ -3,10 +3,11 @@
 #import "BlockImageView.h"
 #import "DataConnection.h"
 
+#import "UIImage+BlockImage.h"
+
 #if CACHE
 #import "GlobalCache.h"
 #endif
-
 
 
 @interface BlockImageView ()
@@ -35,13 +36,23 @@
     self.image = self.placeholderImage ? self.placeholderImage : nil;
 }
 
-- (void)setImage:(UIImage *)image fade:(BOOL)fade {
+
+- (void)setImage:(UIImage *)image
+            fade:(BOOL)fade
+       matchSize:(BOOL)matchSize {
+
+    if (matchSize &&
+        (image.size.width != self.frame.size.width ||
+         image.size.height != self.frame.size.height)) {
+        image = [UIImage scaleImage:image maxSize:MAX(self.frame.size.width, self.frame.size.height)];
+    }
+    
     [self clearLoadingUI];
     
     if (self.fadeImageView == nil) {
         self.fadeImageView = [[UIImageView alloc] initWithFrame:self.bounds];
     }
-
+    
     self.imageConnection = nil;
     self.fadeImageView.contentMode = self.contentMode;
     if (!fade) {
@@ -59,6 +70,15 @@
             [self.fadeImageView removeFromSuperview];
         }];
     }
+    
+}
+
+- (void)setImage:(UIImage *)image
+            fade:(BOOL)fade {
+
+    [self setImage:image
+              fade:fade
+         matchSize:self.matchSize];
 }
 
 - (void)loadImageFromUrlString:(NSString *)urlString {
@@ -67,15 +87,16 @@
     [self.loadingIndicator startAnimating];
     self.loadingIndicator.center = CGPointMake(self.bounds.size.width / 2, self.bounds.size.height / 2) ;
     
-    id cachedResult = nil;
 #if CACHE
+    id cachedResult = nil;
     cachedResult = [[GlobalCache shared] imageForPath:urlString];
-#endif 
     if (cachedResult) {
         [self setImage:cachedResult fade:NO];
         return;
     }
+#endif
     
+    [self.imageConnection cancelAndClear];
     self.imageConnection = [DataConnection withURLString:urlString];
     self.imageConnection.dataBlock = ^UIImage *(NSData *d) {
         return [UIImage imageWithData:d];
@@ -91,7 +112,7 @@
 - (void)imageConnectionDidFinish:(DataConnection *)c {
     if (self.imageConnection == c) {
         [self clearLoadingUI];
-    
+        
         if (c.didSucceed) {
             [self setImage:c.dataObject fade:YES];
         }
@@ -99,7 +120,11 @@
 #if CACHE
     if (c.didSucceed) {
         [[GlobalCache shared] setData:c.connectionData forPath:c.urlString];
-        [[GlobalCache shared] setImage:c.dataObject forPath:c.urlString];
+        [[GlobalCache shared] setImage:
+         self.matchSize ?
+         [UIImage scaleImage:c.dataObject maxSize:MAX(self.frame.size.width, self.frame.size.height)] :
+         c.dataObject
+                               forPath:c.urlString];
     }
 #endif
 }
