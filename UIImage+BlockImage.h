@@ -3,7 +3,7 @@
 
 
 /**
- Created by Jan Sichermann on 3/31/13. Copyright (c) 2013 Urban Compass. All rights reserved.
+ Created by Jan Sichermann on 3/31/13. Copyright (c) 2013 Jan Sichermann. All rights reserved.
  */
 
 @interface UIImage (BlockImage)

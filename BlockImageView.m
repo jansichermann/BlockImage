@@ -62,12 +62,19 @@
         [self addSubview:self.fadeImageView];
         self.fadeImageView.alpha = 0.f;
         self.fadeImageView.image = image;
+ 
+        __weak BlockImageView *weak_self = self;
+        
         [UIView animateWithDuration:0.4 animations:^{
-            self.fadeImageView.alpha = 1.f;
+            weak_self.fadeImageView.alpha = 1.f;
         } completion:^(BOOL finished) {
-            self.image = image;
-            self.fadeImageView.image = nil;
-            [self.fadeImageView removeFromSuperview];
+            // There were crashes due to an animation reference was invalid
+            // This is a speculative fix for that. 
+            if (weak_self) {
+                weak_self.image = image;
+                weak_self.fadeImageView.image = nil;
+                [weak_self.fadeImageView removeFromSuperview];
+            }
         }];
     }
     
@@ -75,14 +82,16 @@
 
 - (void)setImage:(UIImage *)image
             fade:(BOOL)fade {
-
     [self setImage:image
               fade:fade
          matchSize:self.matchSize];
 }
 
 - (void)loadImageFromUrlString:(NSString *)urlString {
-    self.loadingIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+    CGFloat white = 0.f;
+    [self.backgroundColor getWhite:&white alpha:nil];
+    
+    self.loadingIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:white > 0.5 ? UIActivityIndicatorViewStyleGray : UIActivityIndicatorViewStyleWhite];
     [self addSubview:self.loadingIndicator];
     [self.loadingIndicator startAnimating];
     self.loadingIndicator.center = CGPointMake(self.bounds.size.width / 2, self.bounds.size.height / 2) ;
@@ -122,7 +131,7 @@
         [[GlobalCache shared] setData:c.connectionData forPath:c.urlString];
         [[GlobalCache shared] setImage:
          self.matchSize ?
-         [UIImage scaleImage:c.dataObject maxSize:MAX(self.frame.size.width, self.frame.size.height)] :
+         [UIImage scaleImage:c.dataObject maxSize:[[UIScreen mainScreen] scale] * MAX(self.frame.size.width, self.frame.size.height)] :
          c.dataObject
                                forPath:c.urlString];
     }

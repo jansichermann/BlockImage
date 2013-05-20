@@ -3,6 +3,7 @@
 @implementation UIImage (BlockImage)
 
 + (UIImage *)imageWithImage:(UIImage *)image scaledToSize:(CGSize)newSize {
+    NSAssert([[NSThread currentThread] isMainThread], @"Expected to be called on main thread, uikit is not threadsafe");
     UIGraphicsBeginImageContextWithOptions(newSize, YES, 0.0);
     [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
     UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
@@ -11,13 +12,14 @@
 }
 
 + (UIImage *)scaleImage:(UIImage *)image maxSize:(int)maxSize {
+    
     float ratio = 1.f;
     
     if (image.size.width >= image.size.height &&
         image.size.width >= maxSize) {
         ratio = maxSize / image.size.width;
     }
-    else if (image.size.width >= maxSize) {
+    else if (image.size.height >= maxSize) {
         ratio = maxSize / image.size.height;
     }
     

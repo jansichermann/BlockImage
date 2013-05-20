@@ -20,14 +20,19 @@
  
  This is especially useful in places where the image may not immediately be on the screen (i.e. UITableViews)
  */
-@property (nonatomic) NSString *imageUrl;
+@property (nonatomic)               NSString        *imageUrl;
 
 /**
  A Placeholder image to be shown while the actual image isn't loaded.
  You should set this if you plan to ever call unloadImage
  */
-@property (nonatomic) UIImage *placeholderImage;
+@property (nonatomic)               UIImage         *placeholderImage;
 
+/**
+ If this is set to yes, the image will first be resized to the imageView's size, then displayed.
+ Use this to conserve memory
+ Note that the image that will be put in the cache is the resized version.
+ */
 @property (nonatomic) BOOL matchSize;
 
 /**
