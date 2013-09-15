@@ -1,4 +1,5 @@
 #define CACHE 1
+#define ON_ACTIVE_LOAD CACHE && 1
 
 #import "BlockImageView.h"
 #import "DataConnection.h"
@@ -9,6 +10,8 @@
 #import "GlobalCache.h"
 #endif
 
+#pragma clang diagnostic ignored "-Wconversion"
+#pragma clang diagnostic ignored "-Wunused-parameter"
 
 @interface BlockImageView ()
 
@@ -21,6 +24,24 @@
 
 
 @implementation BlockImageView
+
+- (void)dealloc {
+    [self unregisterObservers];
+}
+- (id)init {
+    [NSException raise:@"NDI" format:nil];
+    return nil;
+}
+
+#if ON_ACTIVE_LOAD
+- (id)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        [self registerObservers];
+    }
+    return self;
+}
+#endif
 
 - (void)loadImage {
     NSAssert(self.imageUrl.length > 0, @"Expected imageUrlString to contain imageUrl");
@@ -35,7 +56,6 @@
     [self clearLoadingUI];
     self.image = self.placeholderImage ? self.placeholderImage : nil;
 }
-
 
 - (void)setImage:(UIImage *)image
             fade:(BOOL)fade
@@ -88,6 +108,13 @@
 }
 
 - (void)loadImageFromUrlString:(NSString *)urlString {
+    self.imageUrl = urlString;
+#if ON_ACTIVE_LOAD
+    if ([[UIApplication sharedApplication] applicationState] != UIApplicationStateActive) {
+        return;
+    }
+#endif
+    
     CGFloat white = 0.f;
     [self.backgroundColor getWhite:&white alpha:nil];
     
@@ -150,5 +177,36 @@
     [self.fadeImageView removeFromSuperview];
 }
 
+
+#pragma mark - Observers
+#if ON_ACTIVE_LOAD
+- (void)applicationDidBecomeActive {
+    if (self.imageUrl.length > 0) {
+        [self loadImage];
+    }
+}
+
+- (void)applicationWillResignActive {
+    [self.imageConnection cancelAndClear];
+}
+
+- (void)unregisterObservers {
+    [[NSNotificationCenter defaultCenter]
+     removeObserver:self];
+}
+
+- (void)registerObservers {
+    [[NSNotificationCenter defaultCenter]
+     addObserver:self
+     selector:@selector(applicationDidBecomeActive)
+     name:UIApplicationDidBecomeActiveNotification
+     object:nil];
+    [[NSNotificationCenter defaultCenter]
+     addObserver:self
+     selector:@selector(applicationWillResignActive)
+     name:UIApplicationWillResignActiveNotification
+     object:nil];
+}
+#endif
 
 @end
